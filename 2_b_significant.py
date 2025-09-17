@@ -16,11 +16,11 @@ from functions.main_functions import find_sequences, load_catalog
 RESULT_DIR = Path("results/b_significant")
 
 # single value
-P_THRESHOLD = 0.05                  # significance threshold
+P_THRESHOLD = 0.05  # significance threshold
 
 # multiple values
-EXCLUDE_AFTERSHOCK_DAYS = [0, 1, 2] # no of days after mainshock to exclude
-N_MS = np.arange(150, 250, 50)      # no of magnitudes used for b-value estimation
+EXCLUDE_AFTERSHOCK_DAYS = [0, 1, 2]  # no of days after mainshock to exclude
+N_MS = np.arange(150, 250, 50)  # no of magnitudes used for b-value estimation
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
@@ -34,7 +34,7 @@ CAT_DIR = Path(variables["CAT_DIR"])
 MC_FIXED = variables["MC_FIXED"]
 CORRECTION_FACTOR = variables["CORRECTION_FACTOR"]
 DELTA_M = variables["DELTA_M"]
-DMC = variables["DMC"] # check if usable
+DMC = variables["DMC"]  # check if usable
 
 # sequences
 DIMENSION = variables["DIMENSION"]
@@ -46,6 +46,8 @@ RADIUS_FAR = variables["RADIUS_FAR"]
 MIN_N_SEQ = variables["MIN_N_SEQ"]
 
 # ========= HELPERS =========
+
+
 def get_histograms(
     seqs,
     main_idx,
