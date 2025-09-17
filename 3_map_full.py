@@ -1,3 +1,6 @@
+# sbatch --time=480 --mem-per-cpu=4000 --wrap="python 3_map_full.py"
+
+
 # ========= IMPORTS =========
 import numpy as np
 import pandas as pd

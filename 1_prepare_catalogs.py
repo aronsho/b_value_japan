@@ -1,3 +1,5 @@
+# sbatch --array=0-251 --mem-per-cpu=4000 --wrap="python 3_map_full.py"
+
 # ========= IMPORTS =========
 import numpy as np
 from pathlib import Path

@@ -1,3 +1,6 @@
+# sbatch --array=0-10 --mem-per-cpu=4000 --wrap="python 3_b_significant.py"
+
+
 # ========= IMPORTS =========
 from itertools import product
 from pathlib import Path

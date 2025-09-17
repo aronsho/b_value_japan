@@ -1,3 +1,5 @@
+# python 0_parameters_main.py
+
 # ========= IMPORTS =========
 from pathlib import Path
 
