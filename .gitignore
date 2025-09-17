@@ -3,3 +3,4 @@ functions/__pycache__
 data/catalogs
 data/df_grid.csv
 __pycache__/
+slurm*

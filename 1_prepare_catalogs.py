@@ -1,11 +1,12 @@
 # sbatch --array=0-251 --mem-per-cpu=4000 --wrap="python 1_prepare_catalogs.py"
 
 # ========= IMPORTS =========
-import sys
+import time as time_module
+import os
 import numpy as np
 from pathlib import Path
 import pandas as pd
-from itertools import product
+import itertools as it
 
 from seismostats import Catalog
 from seismostats.utils import CoordinateTransformer, cat_intersect_polygon
@@ -17,14 +18,15 @@ from functions.geofunctions import (
     buffered_polygon_vertices_latlon)
 
 # ======== get slurm ID ========
-job_index = int(sys.argv[1]) - 1
-print(f"Job index: {job_index}")
+job_index = int(os.getenv("SLURM_ARRAY_TASK_ID"))
+print("running index:", job_index, "type", type(job_index))
+t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 DIMENSIONS = [2, 3]                      # dimensionality considered
 BUFFER_MS = [30_000, 40_000, 50_000]     # distance to coast in m
 
-param_grid = product(
+param_grid = it.product(
     DIMENSIONS,
     BUFFER_MS,
 )
@@ -115,6 +117,7 @@ def save_catalog(
 
 # ========= MAIN =========
 if __name__ == "__main__":
+    pass
     # 1) Catalog
     print('Load catalog...')
     cat = load_clean_catalog(CAT_DIR / "all_JMA.csv")
@@ -142,3 +145,5 @@ if __name__ == "__main__":
     # 4) Save
     out_path = save_catalog(cat, BUFFER_M, DIMENSION, CAT_DIR)
     print(f"Saved: {out_path}")
+
+print("time = ", time_module.time() - t)

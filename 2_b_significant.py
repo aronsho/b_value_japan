@@ -12,26 +12,38 @@ from seismostats.analysis import (
 )
 from functions.main_functions import find_sequences, load_catalog
 
-
-# ========= CONFIG =========
-CAT_DIR = Path("data/catalogs")
-SHAPE_DIR = Path("data/shape_japan")
+# ======== SPECIFY PARAMETERS ===
 RESULT_DIR = Path("results/b_significant")
 
-MAGNITUDE_THRESHOLD = 6.0      # mainshock magnitude threshold
-MC_FIXED = 0.7                 # fixed magnitude of completeness
-DELTA_M = 0.1                  # magnitude binning width
-CORRECTION_FACTOR = 0.2        # correction factor for Mc (maxc)
+# single value
+P_THRESHOLD = 0.05                  # significance threshold
 
-RELATION = "surface"           # rupture length relation type
-DAYS_AFTER = 100               # time window after main event
-DAYS_BEFORE = 10 * 365         # time window before main event
-DIMENSION = 3                  # 2D or 3D
-RADIUS_FAR = 2.0               # radius multiplier for "far"
+# multiple values
+EXCLUDE_AFTERSHOCK_DAYS = [0, 1, 2] # no of days after mainshock to exclude
+N_MS = np.arange(150, 250, 50)      # no of magnitudes used for b-value estimation
 
-N_MS = np.arange(150, 250, 50)  # no of magnitudes used per b-value estimate
-P_THRESHOLD = 0.05             # significance threshold
+# ======== LOAD PARAMETERS ======
+DIR = Path("data")
+variables_df = pd.read_csv(DIR / "variables.csv")
+variables = variables_df.to_dict(orient="records")[0]
 
+SHAPE_DIR = Path(variables["SHAPE_DIR"])
+CAT_DIR = Path(variables["CAT_DIR"])
+
+# b-val estimation
+MC_FIXED = variables["MC_FIXED"]
+CORRECTION_FACTOR = variables["CORRECTION_FACTOR"]
+DELTA_M = variables["DELTA_M"]
+DMC = variables["DMC"] # check if usable
+
+# sequences
+DIMENSION = variables["DIMENSION"]
+MAGNITUDE_THRESHOLD = variables["MAGNITUDE_THRESHOLD"]
+RUPTURE_RELATION = variables["RUPTURE_RELATION"]
+DAYS_AFTER = variables["DAYS_AFTER"]
+DAYS_BEFORE = variables["DAYS_BEFORE"]
+RADIUS_FAR = variables["RADIUS_FAR"]
+MIN_N_SEQ = variables["MIN_N_SEQ"]
 
 # ========= HELPERS =========
 def get_histograms(
@@ -92,12 +104,13 @@ def run_with_cutoff(STAI_cutoff_days: int) -> None:
         cat_close,
         cat_400km,
         magnitude_threshold=MAGNITUDE_THRESHOLD,
-        relation=RELATION,
+        relation=RUPTURE_RELATION,
         days_after=pd.Timedelta(days=DAYS_AFTER),
         days_before=pd.Timedelta(days=DAYS_BEFORE),
         exclude_aftershocks=cutoff,
         dimension=DIMENSION,
         radius_far=RADIUS_FAR,
+        min_n_seq=MIN_N_SEQ,
     )
 
     # time-sorted histograms
@@ -130,5 +143,5 @@ if __name__ == "__main__":
                              CORRECTION_FACTOR, DELTA_M, CAT_DIR)
 
     # run for multiple aftershock cutoffs
-    for exclude_aftershock_days in [0, 1, 2]:
+    for exclude_aftershock_days in EXCLUDE_AFTERSHOCK_DAYS:
         run_with_cutoff(exclude_aftershock_days)

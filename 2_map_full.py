@@ -32,7 +32,6 @@ DIR = Path("data")
 variables_df = pd.read_csv(DIR / "variables.csv")
 variables = variables_df.to_dict(orient="records")[0]
 
-
 SHAPE_DIR = Path(variables["SHAPE_DIR"])
 CAT_DIR = Path(variables["CAT_DIR"])
 
