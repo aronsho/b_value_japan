@@ -1,4 +1,4 @@
-# python 3_b_significant.py
+# python 2_b_significant.py
 
 # ========= IMPORTS =========
 import numpy as np

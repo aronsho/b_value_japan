@@ -1,4 +1,4 @@
-# sbatch --array=0-10 --time=480 --mem-per-cpu=4000 --wrap="python 3_map.py"
+# sbatch --array=0-10 --time=480 --mem-per-cpu=4000 --wrap="python 2_map.py"
 
 
 # ========= IMPORTS =========

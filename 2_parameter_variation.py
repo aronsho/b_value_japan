@@ -1,4 +1,4 @@
-# sbatch --array=0-10 --mem-per-cpu=4000 --wrap="python 3_b_significant.py"
+# sbatch --array=0-10 --mem-per-cpu=4000 --wrap="python 2_b_significant.py"
 
 
 # ========= IMPORTS =========
@@ -220,11 +220,11 @@ def main() -> None:
     param_combinations = list(param_grid)
     print(f"{len(param_combinations)} parameter combinations found.")
 
-    for i, params in enumerate(param_combinations, 1):
+    for ii, params in enumerate(param_combinations, 1):
         (mag_thr, b_method, relation,
          days_after, dist_coast, dim, excl_days) = params
         print(
-            f"Processing comb. {i} of {len(param_combinations)}: {params}")
+            f"Processing comb. {ii} of {len(param_combinations)}: {params}")
 
         # load catalogs
         print('Loading catalogs...')

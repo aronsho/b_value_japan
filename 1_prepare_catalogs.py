@@ -1,9 +1,12 @@
-# sbatch --array=0-251 --mem-per-cpu=4000 --wrap="python 3_map_full.py"
+# sbatch --array=0-251 --mem-per-cpu=4000 --wrap="python 1_prepare_catalogs.py"
 
 # ========= IMPORTS =========
+import sys
 import numpy as np
 from pathlib import Path
 import pandas as pd
+from itertools import product
+
 from seismostats import Catalog
 from seismostats.utils import CoordinateTransformer, cat_intersect_polygon
 
@@ -13,9 +16,22 @@ from functions.geofunctions import (
     load_japan_polygon,
     buffered_polygon_vertices_latlon)
 
+# ======== get slurm ID ========
+job_index = int(sys.argv[1]) - 1
+print(f"Job index: {job_index}")
+
 # ======== SPECIFY PARAMETERS ===
-DIMENSION = 3                # 2 or 3
-BUFFER_M = 40_000            # 30 km
+DIMENSIONS = [2, 3]                      # dimensionality considered
+BUFFER_MS = [30_000, 40_000, 50_000]     # distance to coast in m
+
+param_grid = product(
+    DIMENSIONS,
+    BUFFER_MS,
+)
+param_combinations = list(param_grid)
+print(f"{len(param_combinations)} parameter combinations found.")
+(DIMENSION, BUFFER_M) = param_combinations[job_index]
+print(f"Parameters: DIMENSION={DIMENSION}, BUFFER_M={BUFFER_M}")
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
