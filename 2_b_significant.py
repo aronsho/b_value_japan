@@ -34,7 +34,7 @@ CAT_DIR = Path(variables["CAT_DIR"])
 MC_FIXED = variables["MC_FIXED"]
 CORRECTION_FACTOR = variables["CORRECTION_FACTOR"]
 DELTA_M = variables["DELTA_M"]
-DMC = variables["DMC"]  # check if usable
+DMC = variables["DMC"]  # check if used
 
 # sequences
 DIMENSION = variables["DIMENSION"]

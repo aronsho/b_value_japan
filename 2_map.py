@@ -1,22 +1,31 @@
-# sbatch --array=0-10 --time=480 --mem-per-cpu=4000 --wrap="python 2_map.py"
-
+# sbatch --array=0-10 --time=480 --mem-per-cpu=256000 --wrap="python 2_map.py"
 
 # ========= IMPORTS =========
+import time as time_module
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
 
 from seismostats.analysis import estimate_mc_maxc, BPositiveBValueEstimator
 from functions.main_functions import find_sequences, load_catalog
 from functions.space_map import mac_space
 
+# ======== get slurm ID ========
+job_index = int(os.getenv("SLURM_ARRAY_TASK_ID"))
+print("running index:", job_index, "type", type(job_index))
+t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 # single value
 RESULT_DIR = Path("results/map")
 N_REALIZATIONS = 2
-NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
-              12800, 25600, 51200])  # number of tiles
+NS = np.array([102400])  # number of tiles
+#NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
+#              12800, 25600, 51200, 102400])  # number of tiles
+N = NS[job_index]
+print(f"Parameters: N={N}")
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
@@ -37,6 +46,7 @@ MC_FIXED = variables["MC_FIXED"]
 CORRECTION_FACTOR = variables["CORRECTION_FACTOR"]
 DELTA_M = variables["DELTA_M"]
 DMC = variables["DMC"]
+MIN_N_M = variables["MIN_N_M"]
 
 # sequences
 MAGNITUDE_THRESHOLD = variables["MAGNITUDE_THRESHOLD"]
@@ -112,41 +122,39 @@ if __name__ == "__main__":
     # --- Run mac_space for each grid size ---
     mac, mu_mac, std_mac = [], [], []
     print('Estimating maps...')
-    for n in NS:
-        print('current number of tiles:', n)
-        b_avg, b_std, mac_spatial, mu_mac_spatial, std_mac_spatial = mac_space(
-            coords=coords,
-            mags=filtered_df.magnitude,
-            delta_m=filtered_df.delta_m,
-            mc=filtered_df.mc,
-            times=filtered_df.time,
-            limits=limits,
-            n_space=n,
-            n_realizations=N_REALIZATIONS,
-            eval_coords=grid,
-            min_num=25,
-            method=BPositiveBValueEstimator,
-            mc_method=estimate_mc,
-            transform=True,
-            voronoi_method="random",
-            dmc=DMC,
-        )
+    b_avg, b_std, mac_spatial, mu_mac_spatial, std_mac_spatial = mac_space(
+        coords=coords,
+        mags=filtered_df.magnitude,
+        delta_m=filtered_df.delta_m,
+        mc=filtered_df.mc,
+        times=filtered_df.time,
+        limits=limits,
+        n_space=N,
+        n_realizations=N_REALIZATIONS,
+        eval_coords=grid,
+        min_num=MIN_N_M,
+        method=BPositiveBValueEstimator,
+        mc_method=estimate_mc,
+        transform=True,
+        voronoi_method="random",
+        dmc=DMC,
+    )
 
-        # save b-value maps as a DataFrame
-        b_df = pd.DataFrame({
-            "b_avg": b_avg,
-            "b_std": b_std
-        })
-        b_df.to_csv(RESULT_DIR / f"b_values_{n}.csv", index=False)
+    # save b-value maps as a DataFrame
+    b_df = pd.DataFrame({
+        "b_avg": b_avg,
+        "b_std": b_std
+    })
+    b_df.to_csv(RESULT_DIR / f"b_values_{N}.csv", index=False)
 
-        # collect mac arrays
-        mac.append(mac_spatial)
-        mu_mac.append(mu_mac_spatial)
-        std_mac.append(std_mac_spatial)
+    # collect mac arrays
+    mac.append(mac_spatial)
+    mu_mac.append(mu_mac_spatial)
+    std_mac.append(std_mac_spatial)
 
     # --- Save summary DataFrame ---
     df = pd.DataFrame({
-        "n_space": NS,
+        "n_space": N,
         "mc": filtered_df.mc,
         "volume": volume,
         "length_scale": length_scales,
@@ -157,3 +165,6 @@ if __name__ == "__main__":
 
     out_file = RESULT_DIR / "macs_volume_lengthscale.csv"
     df.to_csv(out_file, index=False)
+
+print("time = ", time_module.time() - t)
+print('sbatch --array=0-10 --time=480 --mem-per-cpu=64000 --wrap="python 2_map.py"')

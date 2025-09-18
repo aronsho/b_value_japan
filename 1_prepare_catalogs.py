@@ -1,4 +1,4 @@
-# sbatch --array=0-251 --mem-per-cpu=4000 --wrap="python 1_prepare_catalogs.py"
+# sbatch --array=0-5 --mem-per-cpu=8000 --wrap="python 1_prepare_catalogs.py"
 
 # ========= IMPORTS =========
 import time as time_module
@@ -147,3 +147,4 @@ if __name__ == "__main__":
     print(f"Saved: {out_path}")
 
 print("time = ", time_module.time() - t)
+print('sbatch --array=0-5 --mem-per-cpu=8000 --wrap="python 1_prepare_catalogs.py"')

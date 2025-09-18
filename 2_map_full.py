@@ -1,4 +1,4 @@
-# sbatch --time=480 --mem-per-cpu=4000 --wrap="python 2_map_full.py"
+# sbatch --time=480 --mem-per-cpu=128000 --wrap="python 2_map_full.py"
 
 
 # ========= IMPORTS =========
@@ -22,10 +22,10 @@ from functions.geofunctions import (
 # single value
 RESULT_DIR = Path("results/map")
 N_REALIZATIONS = 2
-N = 2000  # number of tiles
+N = 51200  # number of tiles
 DELTA_XY = 0.2  # in deg
 DELTA_Z = 0.2   # in deg
-COMPUTE_GRID = True
+COMPUTE_GRID = False # First time running, this has to be True!
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
@@ -46,6 +46,7 @@ MC_FIXED = variables["MC_FIXED"]
 CORRECTION_FACTOR = variables["CORRECTION_FACTOR"]
 DELTA_M = variables["DELTA_M"]
 DMC = variables["DMC"]
+MIN_N_M = variables["MIN_N_M"]
 
 # sequences
 DIMENSION = variables["DIMENSION"]
@@ -176,7 +177,7 @@ if __name__ == "__main__":
         n_space=N,
         n_realizations=N_REALIZATIONS,
         eval_coords=grid,
-        min_num=25,
+        min_num=MIN_N_M,
         method=BPositiveBValueEstimator,
         mc_method=estimate_mc,
         transform=True,
@@ -190,3 +191,5 @@ if __name__ == "__main__":
         "b_std": b_std
     })
     b_df.to_csv(RESULT_DIR / f"b_values_{N}_full.csv", index=False)
+
+print('sbatch --time=480 --mem-per-cpu=64000 --wrap="python 2_map_full.py"')

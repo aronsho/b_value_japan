@@ -4,7 +4,7 @@ With this repository, you can recreate all the results of the article.
 
 Software needed:
 - Python>=3.10
-- Python packages: 
+- Python packages: rft1d, seismostats
 
 Recreate:
 Run the following scripts, in order. They are designed to be run with a slurm workload manager. The way to run each script is commented at the top of each document.
