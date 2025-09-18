@@ -1,4 +1,4 @@
-# sbatch --array=0-5 --mem-per-cpu=8000 --wrap="python 1_prepare_catalogs.py"
+# sbatch --array=0-7 --mem-per-cpu=8000 --wrap="python 1_prepare_catalogs.py"
 
 # ========= IMPORTS =========
 import time as time_module
@@ -24,7 +24,7 @@ t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 DIMENSIONS = [2, 3]                      # dimensionality considered
-BUFFER_MS = [30_000, 40_000, 50_000]     # distance to coast in m
+BUFFER_MS = [30_000, 40_000, 50_000, 400_000]     # distance to coast in m
 
 param_grid = it.product(
     DIMENSIONS,
@@ -147,4 +147,4 @@ if __name__ == "__main__":
     print(f"Saved: {out_path}")
 
 print("time = ", time_module.time() - t)
-print('sbatch --array=0-5 --mem-per-cpu=8000 --wrap="python 1_prepare_catalogs.py"')
+print('sbatch --array=0-7 --mem-per-cpu=8000 --wrap="python 1_prepare_catalogs.py"')

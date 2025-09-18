@@ -1,4 +1,4 @@
-# python 2_b_significant.py
+# python 2a_b_significant.py
 
 # ========= IMPORTS =========
 import numpy as np
@@ -99,9 +99,7 @@ def get_histograms(
     return p
 
 
-def run_with_cutoff(STAI_cutoff_days: int) -> None:
-    cutoff = pd.Timedelta(days=STAI_cutoff_days)
-
+def run_with_cutoff(STAI_cutoff: pd.Timedelta) -> None:
     seqs, main_idx, _ = find_sequences(
         cat_close,
         cat_400km,
@@ -109,26 +107,26 @@ def run_with_cutoff(STAI_cutoff_days: int) -> None:
         relation=RUPTURE_RELATION,
         days_after=pd.Timedelta(days=DAYS_AFTER),
         days_before=pd.Timedelta(days=DAYS_BEFORE),
-        exclude_aftershocks=cutoff,
+        exclude_aftershocks=STAI_cutoff,
         dimension=DIMENSION,
         radius_far=RADIUS_FAR,
         min_n_seq=MIN_N_SEQ,
     )
 
     # time-sorted histograms
-    p = get_histograms(seqs, main_idx, N_MS, cutoff, sort_parameter="time")
+    p = get_histograms(seqs, main_idx, N_MS, STAI_cutoff, sort_parameter="time")
     np.savetxt(
-        RESULT_DIR / f"p_values_time_{STAI_cutoff_days}dcutoff.csv",
+        RESULT_DIR / f"p_values_time_{STAI_cutoff.days}dcutoff.csv",
         p,
         delimiter=",",
     )
 
     # space-sorted histograms
     p = get_histograms(
-        seqs, main_idx, N_MS, cutoff, sort_parameter="distance_to_main"
+        seqs, main_idx, N_MS, STAI_cutoff, sort_parameter="distance_to_main"
     )
     np.savetxt(
-        RESULT_DIR / f"p_values_space_{STAI_cutoff_days}dcutoff.csv",
+        RESULT_DIR / f"p_values_space_{STAI_cutoff.days}dcutoff.csv",
         p,
         delimiter=",",
     )
@@ -146,4 +144,4 @@ if __name__ == "__main__":
 
     # run for multiple aftershock cutoffs
     for exclude_aftershock_days in EXCLUDE_AFTERSHOCK_DAYS:
-        run_with_cutoff(exclude_aftershock_days)
+        run_with_cutoff(pd.Timedelta(days=exclude_aftershock_days))

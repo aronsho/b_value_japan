@@ -1,4 +1,5 @@
-# sbatch --array=0-10 --mem-per-cpu=4000 --wrap="python 2_b_significant.py"
+# sbatch
+# --array=0-647 --mem-per-cpu=4000 --wrap="python 2b_parameter_variation.py"
 
 # ========= IMPORTS =========
 import os
@@ -25,7 +26,7 @@ t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 # single value
-RESULT_DIR = Path("results/map")
+RESULT_DIR = Path("results/parameter_variation")
 
 # multiple values
 MAGNITUDE_THRESHOLDS = [5.5, 6.0, 6.5]
@@ -288,5 +289,5 @@ if __name__ == "__main__":
     df_b.to_csv(out_path)
     print(f"  Saved: {out_path}")
 
-
-print('sbatch --time=480 --mem-per-cpu=128000 --wrap="python 2_map_full.py"')
+print("time = ", time_module.time() - t)
+print('sbatch --array=0-647 --mem-per-cpu=4000 --wrap="python 2b_parameter_variation.py"')

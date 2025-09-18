@@ -6,6 +6,14 @@ Software needed:
 - Python>=3.10
 - Python packages: rft1d, seismostats
 
+Files needed:
+The only additional file that is needed is an earthquake catalog of japan. This catalog should be a cvs with the following collumns (case sensitive): time, latitude, longitude, depth, magnitude, event_type.
+The csv file is read as dataframe (df). Some notes:
+- time: includes data and time, has to be such that this works: pd.to_datetime(df["time"], format="mixed")
+- event_type: only the earthquakes that are 'earthquake' are considered
+- latitude/ longitude: in degree with decimal points (not minutes/seconds)
+- depth: in km
+
 Recreate:
 Run the following scripts, in order. They are designed to be run with a slurm workload manager. The way to run each script is commented at the top of each document.
 - 0_parameters.py (set the parameters that will be used later) 

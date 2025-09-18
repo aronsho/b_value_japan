@@ -1,4 +1,4 @@
-# sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2_map.py"
+# sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2c_map.py"
 
 # ========= IMPORTS =========
 import time as time_module
@@ -20,19 +20,25 @@ t = time_module.time()
 # ======== SPECIFY PARAMETERS ===
 # single value
 RESULT_DIR = Path("results/map")
+RESULT_TMP = Path("results/map/tmp")
+
 N_REALIZATIONS = 2
-NS = np.array([102400])  # number of tiles
-# NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
-#              12800, 25600, 51200, 102400])  # number of tiles
-N = NS[job_index]
-print(f"Parameters: N={N}")
+NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
+                12800, 25600, 51200, 102400])  # number of tiles
+
+# Map job_index to (N, realization)
+n_space_index = job_index // N_REALIZATIONS
+realization_index = job_index % N_REALIZATIONS
+N = NS[n_space_index]
+print(f"Parameters: spatial N={N}, realization index={realization_index}")
+if job_index > len(NS) * N_REALIZATIONS - 1:
+    raise ValueError("SLURM_ARRAY_TASK_ID is too large")
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
 variables_df = pd.read_csv(DIR / "variables.csv")
 variables = variables_df.to_dict(orient="records")[0]
 
-SHAPE_DIR = Path(variables["SHAPE_DIR"])
 CAT_DIR = Path(variables["CAT_DIR"])
 
 # transformation to local variables
@@ -66,7 +72,6 @@ def estimate_mc(magnitudes, delta_m):
     mc, _ = estimate_mc_maxc(magnitudes, delta_m, CORRECTION_FACTOR)
     return mc
 
-
 # ========= MAIN =========
 if __name__ == "__main__":
     # --- Load catalogs ---
@@ -80,6 +85,10 @@ if __name__ == "__main__":
 
     # --- Find sequences ---
     print('Finding sequences...')
+    # note that post_include_aftershocks means that the sequenecs are found as 
+    # usual, but aftershock events are added back to the sequences in the end.
+    # The reason for this is that we want to remove the sequence including all 
+    # aftershocks from the map.
     seqs, main_idx, _ = find_sequences(
         cat_close,
         cat_far,
@@ -95,6 +104,8 @@ if __name__ == "__main__":
     )
 
     # --- Filter catalog ---
+    # Here, the sequences are removed from the catalog, so that the map 
+    # we estimate is not influenced by the sequences.
     df_large_close = cat_close.loc[main_idx]
     all_sequences = pd.concat(seqs + [df_large_close])
     filtered_df = cat_close.drop(all_sequences.index, errors="ignore")
@@ -117,10 +128,9 @@ if __name__ == "__main__":
         * (limits[1][1] - limits[1][0])
         * (limits[2][1] - limits[2][0])
     )
-    length_scales = (volume / NS * 3 / (4 * np.pi)) ** (1 / 3)
+    length_scale = (volume / N * 3 / (4 * np.pi)) ** (1 / 3)
 
     # --- Run mac_space for each grid size ---
-    mac, mu_mac, std_mac = [], [], []
     print('Estimating maps...')
     b_avg, b_std, mac_spatial, mu_mac_spatial, std_mac_spatial = mac_space(
         coords=coords,
@@ -130,7 +140,7 @@ if __name__ == "__main__":
         times=filtered_df.time,
         limits=limits,
         n_space=N,
-        n_realizations=N_REALIZATIONS,
+        n_realizations=1,
         eval_coords=grid,
         min_num=MIN_N_M,
         method=BPositiveBValueEstimator,
@@ -140,31 +150,23 @@ if __name__ == "__main__":
         dmc=DMC,
     )
 
-    # save b-value maps as a DataFrame
-    b_df = pd.DataFrame({
-        "b_avg": b_avg,
-        "b_std": b_std
-    })
-    b_df.to_csv(RESULT_DIR / f"b_values_{N}.csv", index=False)
+    b_df = pd.DataFrame({"b_val": b_avg})
+    tmp_file = RESULT_TMP / f"b_values_N{N}_R{realization_index}.csv"
+    b_df.to_csv(tmp_file, index=False)
+    print(f"N = {N}: Saved realization {realization_index} to {tmp_file}")
 
-    # collect mac arrays
-    mac.append(mac_spatial)
-    mu_mac.append(mu_mac_spatial)
-    std_mac.append(std_mac_spatial)
-
-    # --- Save summary DataFrame ---
     df = pd.DataFrame({
         "n_space": N,
         "mc": filtered_df.mc,
         "volume": volume,
-        "length_scale": length_scales,
-        "mac_spatial": np.array(mac),
-        "mu_mac_spatial": np.array(mu_mac),
-        "std_mac_spatial": np.array(std_mac),
+        "length_scale": length_scale,
+        "mac_spatial": mac_spatial,
+        "mu_mac_spatial": mu_mac_spatial,
+        "std_mac_spatial": std_mac_spatial,
     })
 
-    out_file = RESULT_DIR / "macs_volume_lengthscale.csv"
+    out_file = RESULT_TMP / f"macs_volume_lengthscale_N{N}_R{realization_index}.csv"
     df.to_csv(out_file, index=False)
 
 print("time = ", time_module.time() - t)
-print('sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2_map.py"')
+print('sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2c_map.py"')
