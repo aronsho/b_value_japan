@@ -2,6 +2,8 @@
 
 
 # ========= IMPORTS =========
+import os
+import time as time_module
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -17,6 +19,10 @@ from functions.geofunctions import (
     load_japan_polygon,
     buffered_polygon_vertices_latlon)
 
+# ======== get slurm ID ========
+job_index = int(os.getenv("SLURM_ARRAY_TASK_ID"))
+print("running index:", job_index, "type", type(job_index))
+t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 # single value
@@ -25,7 +31,7 @@ N_REALIZATIONS = 2
 N = 51200  # number of tiles
 DELTA_XY = 0.2  # in deg
 DELTA_Z = 0.2   # in deg
-COMPUTE_GRID = False # First time running, this has to be True!
+COMPUTE_GRID = False  # First time running, this has to be True!
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
@@ -192,4 +198,5 @@ if __name__ == "__main__":
     })
     b_df.to_csv(RESULT_DIR / f"b_values_{N}_full.csv", index=False)
 
-print('sbatch --time=480 --mem-per-cpu=64000 --wrap="python 2_map_full.py"')
+print("time = ", time_module.time() - t)
+print('sbatch --time=480 --mem-per-cpu=128000 --wrap="python 2_map_full.py"')

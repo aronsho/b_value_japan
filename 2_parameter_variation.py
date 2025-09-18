@@ -1,8 +1,9 @@
 # sbatch --array=0-10 --mem-per-cpu=4000 --wrap="python 2_b_significant.py"
 
-
 # ========= IMPORTS =========
-from itertools import product
+import os
+import time as time_module
+import itertools as it
 from pathlib import Path
 
 import numpy as np
@@ -17,18 +18,47 @@ from seismostats.analysis import (
 
 from functions.main_functions import find_sequences, load_catalog
 
+# ======== get slurm ID ========
+job_index = int(os.getenv("SLURM_ARRAY_TASK_ID"))
+print("running index:", job_index, "type", type(job_index))
+t = time_module.time()
+
 # ======== SPECIFY PARAMETERS ===
 # single value
 RESULT_DIR = Path("results/map")
 
 # multiple values
-MAGNITUDE_THRESHOLDS = [6.0]
+MAGNITUDE_THRESHOLDS = [5.5, 6.0, 6.5]
 B_METHODS = ["global", "local"]
-RUPTURE_RELATIONS = ["surface"]
-DAYS_AFTER = [100]
-DISTANCES_TO_COAST = [40]
-DIMENSIONS = [3]
-EXCLUDE_AFTERSHOCKS_DAYS = [1]
+RUPTURE_RELATIONS = ["surface", "subsurface"]
+DAYS_AFTERS = [50, 100, 200]
+DISTANCE_TO_COASTS = [30, 40, 50]
+DIMENSIONS = [2, 3]
+EXCLUDE_AFTERSHOCKS_DAYS = [0, 1, 2]
+
+param_grid = it.product(
+    MAGNITUDE_THRESHOLDS,
+    B_METHODS,
+    RUPTURE_RELATIONS,
+    DAYS_AFTERS,
+    DISTANCE_TO_COASTS,
+    DIMENSIONS,
+    EXCLUDE_AFTERSHOCKS_DAYS,
+)
+param_combinations = list(param_grid)
+print(f"{len(param_combinations)} parameter combinations found.")
+(MAGNITUDE_THRESHOLD,
+ B_METHOD,
+ RUPTURE_RELATION,
+ DAYS_AFTER,
+ DISTANCE_TO_COAST,
+ DIMENSION,
+ EXCLUDE_AFTERSHOCKS_DAY) = param_combinations[job_index]
+print(f"Parameters: "
+      f"MAGNITUDE_THRESHOLD={MAGNITUDE_THRESHOLD}, B_METHOD={B_METHOD}, "
+      f"RUPTURE_RELATION={RUPTURE_RELATION}, DAYS_AFTER={DAYS_AFTER}, "
+      f"DISTANCE_TO_COAST={DISTANCE_TO_COAST}, DIMENSION={DIMENSION}, "
+      f"EXCLUDE_AFTERSHOCKS_DAY={EXCLUDE_AFTERSHOCKS_DAY}")
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
@@ -58,6 +88,7 @@ def estimate_b_values(sequences: list[pd.DataFrame],
                       cat: Catalog,
                       b_method: str,
                       delta_m: float,
+                      dmc: float,
                       correction_factor: float,
                       radius_close: float,
                       n_check: int) -> pd.DataFrame:
@@ -92,7 +123,7 @@ def estimate_b_values(sequences: list[pd.DataFrame],
 
         # initial b-value estimation
         estimator.calculate(seq.magnitude, mc=mc,
-                            delta_m=delta_m, times=seq.time, dmc=DMC)
+                            delta_m=delta_m, times=seq.time, dmc=dmc)
         if b_method == "global":
             mags, times = estimator.magnitudes, estimator.times
             distances = seq["distance_to_main"].values[estimator.idx]
@@ -108,10 +139,10 @@ def estimate_b_values(sequences: list[pd.DataFrame],
             if len(sub_mags) < n_check:
                 return np.nan, np.nan, np.nan
             if b_method == "global":
-                estimator2.calculate(sub_mags, mc=DMC, delta_m=delta_m)
+                estimator2.calculate(sub_mags, mc=dmc, delta_m=delta_m)
             elif b_method == "local":
                 estimator2.calculate(sub_mags, mc=mc,
-                                     delta_m=delta_m, dmc=DMC,
+                                     delta_m=delta_m, dmc=dmc,
                                      times=sub_times)
             return (
                 estimator2.b_value,
@@ -207,71 +238,55 @@ def estimate_b_values(sequences: list[pd.DataFrame],
 # ========= MAIN =========
 
 
-def main() -> None:
-    param_grid = product(
-        MAGNITUDE_THRESHOLDS,
-        B_METHODS,
-        RUPTURE_RELATIONS,
-        DAYS_AFTER,
-        DISTANCES_TO_COAST,
-        DIMENSIONS,
-        EXCLUDE_AFTERSHOCKS_DAYS,
-    )
-    param_combinations = list(param_grid)
-    print(f"{len(param_combinations)} parameter combinations found.")
-
-    for ii, params in enumerate(param_combinations, 1):
-        (mag_thr, b_method, relation,
-         days_after, dist_coast, dim, excl_days) = params
-        print(
-            f"Processing comb. {ii} of {len(param_combinations)}: {params}")
-
-        # load catalogs
-        print('Loading catalogs...')
-        fname_close = f"df_japan_buffered_catalog_{dist_coast}km_{dim}D.csv"
-        fname_far = f"df_japan_buffered_catalog_400km_{dim}D.csv"
-        cat_close = load_catalog(
-            fname_close, MC_FIXED - CORRECTION_FACTOR, DELTA_M, CAT_DIR)
-        cat_far = load_catalog(fname_far, MC_FIXED -
-                               CORRECTION_FACTOR, DELTA_M, CAT_DIR)
-
-        # find sequences
-        print('Finding sequences...')
-        seqs, main_idx, cat_close = find_sequences(
-            cat_close, cat_far,
-            magnitude_threshold=mag_thr,
-            relation=relation,
-            days_after=pd.Timedelta(days=days_after),
-            days_before=pd.Timedelta(days=DAYS_BEFORE),
-            exclude_aftershocks=pd.Timedelta(days=excl_days),
-            dimension=dim,
-            radius_far=RADIUS_FAR,
-            min_n_seq=MIN_N_SEQ
-        )
-        print(f"  {len(seqs)} sequences found.")
-
-        # estimate b-values
-        print('Estimating b-values...')
-        df_b = estimate_b_values(
-            seqs,
-            main_idx,
-            cat_close,
-            b_method,
-            delta_m=DELTA_M,
-            correction_factor=CORRECTION_FACTOR,
-            radius_close=RADIUS_CLOSE,
-            n_check=MIN_N_M
-        )
-
-        # save
-        save_name = (
-            f"df_b_values_{mag_thr}M_{b_method}_{relation}_"
-            f"{days_after}days_{dist_coast}km_{dim}D_{excl_days}days.csv"
-        )
-        out_path = RESULT_DIR / save_name
-        df_b.to_csv(out_path)
-        print(f"  Saved: {out_path}")
-
-
 if __name__ == "__main__":
-    main()
+    # load catalogs
+    print('Loading catalogs...')
+    fname_close = (f"df_japan_buffered_catalog_{DISTANCE_TO_COAST}km_"
+                   f"{DIMENSION}D.csv")
+    fname_far = f"df_japan_buffered_catalog_400km_{DIMENSION}D.csv"
+    cat_close = load_catalog(
+        fname_close, MC_FIXED - CORRECTION_FACTOR, DELTA_M, CAT_DIR)
+    cat_far = load_catalog(fname_far, MC_FIXED -
+                           CORRECTION_FACTOR, DELTA_M, CAT_DIR)
+
+    # find sequences
+    print('Finding sequences...')
+    seqs, main_idx, cat_close = find_sequences(
+        cat_close, cat_far,
+        magnitude_threshold=MAGNITUDE_THRESHOLD,
+        relation=RUPTURE_RELATION,
+        days_after=pd.Timedelta(days=DAYS_AFTER),
+        days_before=pd.Timedelta(days=DAYS_BEFORE),
+        exclude_aftershocks=pd.Timedelta(days=EXCLUDE_AFTERSHOCKS_DAY),
+        dimension=DIMENSION,
+        radius_far=RADIUS_FAR,
+        min_n_seq=MIN_N_SEQ
+    )
+    print(f"  {len(seqs)} sequences found.")
+
+    # estimate b-values
+    print('Estimating b-values...')
+    df_b = estimate_b_values(
+        seqs,
+        main_idx,
+        cat_close,
+        B_METHOD,
+        delta_m=DELTA_M,
+        dmc=DMC,
+        correction_factor=CORRECTION_FACTOR,
+        radius_close=RADIUS_CLOSE,
+        n_check=MIN_N_M
+    )
+
+    # save
+    save_name = (
+        f"df_b_values_{MAGNITUDE_THRESHOLD}M_{B_METHOD}_{RUPTURE_RELATION}_"
+        f"{DAYS_AFTER}days_{DISTANCE_TO_COAST}km_{DIMENSION}D_"
+        f"{EXCLUDE_AFTERSHOCKS_DAY}days.csv"
+    )
+    out_path = RESULT_DIR / save_name
+    df_b.to_csv(out_path)
+    print(f"  Saved: {out_path}")
+
+
+print('sbatch --time=480 --mem-per-cpu=128000 --wrap="python 2_map_full.py"')

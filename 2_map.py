@@ -1,4 +1,4 @@
-# sbatch --array=0-10 --time=480 --mem-per-cpu=256000 --wrap="python 2_map.py"
+# sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2_map.py"
 
 # ========= IMPORTS =========
 import time as time_module
@@ -22,7 +22,7 @@ t = time_module.time()
 RESULT_DIR = Path("results/map")
 N_REALIZATIONS = 2
 NS = np.array([102400])  # number of tiles
-#NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
+# NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
 #              12800, 25600, 51200, 102400])  # number of tiles
 N = NS[job_index]
 print(f"Parameters: N={N}")
@@ -167,4 +167,4 @@ if __name__ == "__main__":
     df.to_csv(out_file, index=False)
 
 print("time = ", time_module.time() - t)
-print('sbatch --array=0-10 --time=480 --mem-per-cpu=64000 --wrap="python 2_map.py"')
+print('sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2_map.py"')
