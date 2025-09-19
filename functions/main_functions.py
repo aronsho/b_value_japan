@@ -60,12 +60,11 @@ def find_sequences(cat_close: Catalog,
     Identify large-event sequences in catalog.
     Returns (list of sequences, list of main event indices, updated cat_close).
     """
+
     # select large events
     large_far = cat_far[cat_far["magnitude"] >= magnitude_threshold].copy()
     mask_close = cat_close["magnitude"] >= magnitude_threshold
     large_close = cat_close[mask_close].copy()
-    start_time = large_far["time"].min()
-    large_close = large_close[large_close["time"] > start_time + days_after]
 
     # add rupture lengths
     large_far["rupture_length"] = rupture_length(

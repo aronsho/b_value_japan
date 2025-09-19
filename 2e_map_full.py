@@ -1,4 +1,4 @@
-# sbatch --time=480 --mem-per-cpu=128000 --wrap="python 2_map_full.py"
+# sbatch --array=0-99 --time=480 --mem-per-cpu=128000 --wrap="python 2e_map_full.py"
 
 
 # ========= IMPORTS =========
@@ -26,12 +26,17 @@ t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 # single value
-RESULT_DIR = Path("results/map")
-N_REALIZATIONS = 2
-N = 51200  # number of tiles
+RESULT_TMP = Path("results/map/tmp_full")
+
+N_REALIZATIONS = 100
+N = 25600  # number of tiles
 DELTA_XY = 0.2  # in deg
 DELTA_Z = 0.2   # in deg
-COMPUTE_GRID = False  # First time running, this has to be True!
+COMPUTE_GRID = True  # First time running, this has to be True!
+
+if job_index > N_REALIZATIONS - 1:
+    raise ValueError("SLURM_ARRAY_TASK_ID too large for available realizations")
+print(f"Parameters: N={N}, job_index={job_index}")
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
@@ -181,7 +186,7 @@ if __name__ == "__main__":
         times=filtered_df.time,
         limits=limits,
         n_space=N,
-        n_realizations=N_REALIZATIONS,
+        n_realizations=1,
         eval_coords=grid,
         min_num=MIN_N_M,
         method=BPositiveBValueEstimator,
@@ -192,11 +197,10 @@ if __name__ == "__main__":
     )
 
     # save b-value maps as a DataFrame
-    b_df = pd.DataFrame({
-        "b_avg": b_avg,
-        "b_std": b_std
-    })
-    b_df.to_csv(RESULT_DIR / f"b_values_{N}_full.csv", index=False)
+    b_df = pd.DataFrame({ "b_val": b_avg})
+    tmp_file = RESULT_TMP / f"b_values_N{N}_R{job_index+1}.csv"
+    b_df.to_csv(tmp_file, index=False)
+    print(f"N = {N}: Saved realization {job_index+1} to {tmp_file}")
 
 print("time = ", time_module.time() - t)
-print('sbatch --time=480 --mem-per-cpu=128000 --wrap="python 2_map_full.py"')
+print('sbatch --array=0-99 --time=480 --mem-per-cpu=128000 --wrap="python 2e_map_full.py"')

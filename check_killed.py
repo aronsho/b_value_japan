@@ -37,6 +37,6 @@ def check_killed_jobs(job_id_prefix:str, n: int, log_dir="."):
     return killed_indices, missing_indices
 # Example usage
 if __name__ == "__main__":
-    killed, missing = check_killed_jobs("41033557", 5, log_dir=".")
+    killed, missing = check_killed_jobs("43211310", 5, log_dir=".")
     print("Killed job indices:", killed)
     print("Missing job indices:", missing)

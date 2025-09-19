@@ -1,4 +1,4 @@
-# sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2c_map.py"
+# sbatch --array=0-499 --mem-per-cpu=256000 --wrap="python 2c_map_high.py"
 
 # ========= IMPORTS =========
 import time as time_module
@@ -19,12 +19,10 @@ t = time_module.time()
 
 # ======== SPECIFY PARAMETERS ===
 # single value
-RESULT_DIR = Path("results/map")
 RESULT_TMP = Path("results/map/tmp")
 
-N_REALIZATIONS = 2
-NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
-                12800, 25600, 51200, 102400])  # number of tiles
+N_REALIZATIONS = 100
+NS = np.array([6400, 12800, 25600, 51200, 102400])  # number of tiles
 
 # Map job_index to (N, realization)
 n_space_index = job_index // N_REALIZATIONS
@@ -156,17 +154,17 @@ if __name__ == "__main__":
     print(f"N = {N}: Saved realization {realization_index} to {tmp_file}")
 
     df = pd.DataFrame({
-        "n_space": N,
-        "mc": filtered_df.mc,
-        "volume": volume,
-        "length_scale": length_scale,
-        "mac_spatial": mac_spatial,
-        "mu_mac_spatial": mu_mac_spatial,
-        "std_mac_spatial": std_mac_spatial,
+        "n_space": [N],
+        "mc": [filtered_df.mc],
+        "volume": [volume],
+        "length_scale": [length_scale],
+        "mac_spatial": [mac_spatial],
+        "mu_mac_spatial": [mu_mac_spatial],
+        "std_mac_spatial": [std_mac_spatial],
     })
 
     out_file = RESULT_TMP / f"macs_volume_lengthscale_N{N}_R{realization_index}.csv"
     df.to_csv(out_file, index=False)
 
 print("time = ", time_module.time() - t)
-print('sbatch --array=0-10 --mem-per-cpu=256000 --wrap="python 2c_map.py"')
+print('sbatch --array=0-499 --mem-per-cpu=256000 --wrap="python 2c_map_high.py"')

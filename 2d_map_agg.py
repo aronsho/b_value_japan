@@ -12,16 +12,12 @@ RESULT_DIR = Path("results/map")
 RESULT_TMP = Path("results/map/tmp")
 
 # mutliple values
-NS = np.array([100, 200, 400, 800, 1600, 3200, 6400,
-                12800, 25600, 51200, 102400])  # number of tiles
+NS = np.array([6400, 12800, 25600, 51200, 102400])  # number of tiles
 
 # ======== LOAD PARAMETERS ======
 DIR = Path("data")
 variables_df = pd.read_csv(DIR / "variables.csv")
 variables = variables_df.to_dict(orient="records")[0]
-
-CAT_DIR = Path(variables["CAT_DIR"])
-
 
 # ========= MAIN =========
 if __name__ == "__main__":
